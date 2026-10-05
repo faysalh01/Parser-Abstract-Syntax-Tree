@@ -1,8 +1,5 @@
-# Onyx Lexer
-# Part 3 - Programming Languages Project
-
 class LexerError(Exception):
-    """Custom error for invalid characters in Onyx source code."""
+    """Custom error for invalid characters or malformed tokens in Onyx source code."""
     pass
 
 
@@ -18,6 +15,7 @@ class Token:
 
 
 class Lexer:
+    # Onyx keywords
     KEYWORDS = {
         "let": "LET",
         "print": "PRINT",
@@ -25,9 +23,10 @@ class Lexer:
         "else": "ELSE",
         "while": "WHILE",
         "def": "DEF",
-        "return": "RETURN",
+        "return": "RETURN"
     }
 
+    # Single-character tokens
     SINGLE_CHAR_TOKENS = {
         "+": "PLUS",
         "-": "MINUS",
@@ -43,7 +42,7 @@ class Lexer:
         "[": "LBRACKET",
         "]": "RBRACKET",
         ",": "COMMA",
-        ";": "SEMICOLON",
+        ";": "SEMICOLON"
     }
 
     def __init__(self, source):
@@ -59,22 +58,32 @@ class Lexer:
     def advance(self):
         self.position += 1
 
+    def peek(self):
+        next_position = self.position + 1
+        if next_position >= len(self.source):
+            return None
+        return self.source[next_position]
+
     def tokenize(self):
         while self.position < len(self.source):
             char = self.current_char()
 
+            # Ignore whitespace
             if char.isspace():
                 self.advance()
                 continue
 
+            # Identifier or keyword
             if char.isalpha() or char == "_":
                 self.read_identifier()
                 continue
 
+            # Integer number
             if char.isdigit():
                 self.read_number()
                 continue
 
+            # Two-character comparison operators
             if char == "=" and self.peek() == "=":
                 self.tokens.append(Token("EQUAL_EQUAL"))
                 self.advance()
@@ -99,12 +108,14 @@ class Lexer:
                 self.advance()
                 continue
 
+            # Single-character tokens
             if char in self.SINGLE_CHAR_TOKENS:
                 token_type = self.SINGLE_CHAR_TOKENS[char]
                 self.tokens.append(Token(token_type))
                 self.advance()
                 continue
 
+            # Invalid character
             raise LexerError(
                 f"Lexical error: invalid character '{char}' "
                 f"at position {self.position}."
@@ -140,16 +151,22 @@ class Lexer:
         ):
             self.advance()
 
+        # Check for invalid identifier starting with digits
+        # Example: 123var
+        if (
+            self.current_char() is not None
+            and (
+                self.current_char().isalpha()
+                or self.current_char() == "_"
+            )
+        ):
+            raise LexerError(
+                f"Lexical error: invalid identifier starting with "
+                f"digits at position {start}."
+            )
+
         value = self.source[start:self.position]
         self.tokens.append(Token("NUMBER", value))
-
-    def peek(self):
-        next_position = self.position + 1
-
-        if next_position >= len(self.source):
-            return None
-
-        return self.source[next_position]
 
 
 if __name__ == "__main__":
@@ -158,7 +175,9 @@ if __name__ == "__main__":
 
     try:
         tokens = lexer.tokenize()
+
         for token in tokens:
             print(token)
+
     except LexerError as error:
         print(error)
